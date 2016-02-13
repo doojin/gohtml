@@ -2,27 +2,42 @@ package tag
 
 import (
 	"strings"
-	"sort"
+	"fmt"
+	"github.com/doojin/gohtml/util"
 )
+
+// Compilable interface represents the compilable to string structure
+type Compilable interface {
+	Compile() string
+}
 
 // HTMLElement represents a DOM element
 type HTMLElement struct {
-	pattern    string
-	children   []*HTMLElement
-	attributes map[string]string
+	pattern           string
+	children          []Compilable
+	attributes        map[string]interface{}
+	booleanAttributes map[string]interface{}
 }
 
 // Append adds child element to children slice
-func (el *HTMLElement) Append(node *HTMLElement) {
+func (el *HTMLElement) Append(node Compilable) {
 	el.children = append(el.children, node)
 }
 
-// Attribute adds attribute to attributes map
+// Attribute adds attribute to HTML element
 func (el *HTMLElement) Attribute(name, value string) {
 	if el.attributes == nil {
-		el.attributes = map[string]string{}
+		el.attributes = map[string]interface{}{}
 	}
 	el.attributes[name] = value
+}
+
+// Boolean attribute adds or removes a boolean attribute to/from HTML element
+func (el *HTMLElement) BooleanAttribute(name string, value bool) {
+	if el.booleanAttributes == nil {
+		el.booleanAttributes = map[string]interface{}{}
+	}
+	el.booleanAttributes[name] = value
 }
 
 // Compile returns a textual representation of HTMLElement
@@ -40,20 +55,35 @@ func (el *HTMLElement) compileChildren() (output string) {
 }
 
 func (el *HTMLElement) compileAttributes() (output string) {
-	template := " {{attributeName}}=\"{{attributeValue}}\""
-	attrNames := el.sortedAttrNames()
+	output = el.compileNonBooleanAttributes()
+	output += el.compileBooleanAttributes()
+	return
+}
+
+func (el *HTMLElement) compileNonBooleanAttributes() (output string) {
+	attrNames := util.SortedMapKeys(el.attributes)
 	for _, attrName := range attrNames {
-		attribute := strings.Replace(template, "{{attributeName}}", attrName, -1)
-		attribute = strings.Replace(attribute, "{{attributeValue}}", el.attributes[attrName], -1)
-		output += attribute
+		output += el.compileNonBooleanAttribute(attrName, el.attributes[attrName])
 	}
 	return
 }
 
-func (el *HTMLElement) sortedAttrNames() (attrNames []string) {
-	for attrName := range el.attributes {
-		attrNames = append(attrNames, attrName)
+func (el *HTMLElement) compileBooleanAttributes() (output string) {
+	attrNames := util.SortedMapKeys(el.booleanAttributes)
+	for _, attrName := range attrNames {
+		if el.booleanAttributes[attrName].(bool) {
+			output += el.compileBooleanAttribute(attrName)
+		}
 	}
-	sort.Strings(attrNames)
 	return
+}
+
+func (el *HTMLElement) compileNonBooleanAttribute(attrName string, attrValue interface{}) string {
+	template := " %s=\"%s\""
+	return fmt.Sprintf(template, attrName, attrValue)
+}
+
+func (el *HTMLElement) compileBooleanAttribute(attrName interface{}) string {
+	template := " %s"
+	return fmt.Sprintf(template, attrName)
 }

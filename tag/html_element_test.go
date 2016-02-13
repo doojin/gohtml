@@ -38,24 +38,53 @@ func Test_compileChildren_shouldCompileChildrenElementsCorrectly(t *testing.T) {
 	assert.Equal(t, htmlElement.compileChildren(), "<child1></child1><child2></child2>")
 }
 
-func Test_sortedAttrNames_shouldReturnSortedAttributeNamesOfHTMLElement(t *testing.T) {
-	htmlElement := new(HTMLElement)
-	htmlElement.attributes = map[string]string{
-		"uDummyAttribute": "uDummyValue",
-		"iDummyAttribute": "iDummyValue",
-		"aDummyAttribute": "aDummyValue",
-	}
-	expected := []string{"aDummyAttribute", "iDummyAttribute", "uDummyAttribute"}
-	assert.Equal(t, expected, htmlElement.sortedAttrNames())
+func Test_compileNonBooleanAttribute_shouldCompileAttributeWithValue(t *testing.T) {
+	el := new(HTMLElement)
+	assert.Equal(t, el.compileNonBooleanAttribute("attrName", "attrValue"), " attrName=\"attrValue\"")
 }
 
-func Test_compileAttributes_shouldCompileAttributesOfHTMLElementCorrectly(t *testing.T) {
-	htmlElement := new(HTMLElement)
-	htmlElement.attributes = map[string]string{
-		"uDummyAttribute": "uDummyValue",
-		"iDummyAttribute": "iDummyValue",
-		"aDummyAttribute": "aDummyValue",
-	}
-	expected := " aDummyAttribute=\"aDummyValue\" iDummyAttribute=\"iDummyValue\" uDummyAttribute=\"uDummyValue\""
-	assert.Equal(t, expected, htmlElement.compileAttributes())
+func Test_compileBooleanAttribute_shouldCompileAttributeWithoutValue(t *testing.T) {
+	el := new(HTMLElement)
+	assert.Equal(t, el.compileBooleanAttribute("attrName"), " attrName")
+}
+
+func Test_BooleanAttribute_shouldAddBooleanAttributeToBooleanAttributesMap(t *testing.T) {
+	el := new(HTMLElement)
+	el.BooleanAttribute("attr1", true)
+	el.BooleanAttribute("attr2", false)
+	assert.Equal(t, 2, len(el.booleanAttributes))
+	assert.Equal(t, true, el.booleanAttributes["attr1"])
+	assert.Equal(t, false, el.booleanAttributes["attr2"])
+}
+
+func Test_Attribute_shouldAddAttributeToAttributesMap(t *testing.T) {
+	el := new(HTMLElement)
+	el.Attribute("attr1", "val1")
+	el.Attribute("attr2", "val2")
+	assert.Equal(t, "val1", el.attributes["attr1"])
+	assert.Equal(t, "val2", el.attributes["attr2"])
+}
+
+func Test_compileNonBooleanAttributes_shouldCompileNonBooleanAttributes(t *testing.T) {
+	el := new(HTMLElement)
+	el.Attribute("attr1", "val1")
+	el.Attribute("attr2", "val2")
+	assert.Equal(t, " attr1=\"val1\" attr2=\"val2\"", el.compileNonBooleanAttributes())
+}
+
+func Test_compileBooleanAttributes_shouldCompileBooleanAttributes(t *testing.T) {
+	el := new(HTMLElement)
+	el.BooleanAttribute("attr1", true)
+	el.BooleanAttribute("attr2", false)
+	el.BooleanAttribute("attr3", true)
+	assert.Equal(t, " attr1 attr3", el.compileBooleanAttributes())
+}
+
+func Test_compileAttributes_shouldCompileAllAttributes(t *testing.T) {
+	el := new(HTMLElement)
+	el.Attribute("attr1", "val1")
+	el.Attribute("attr2", "val2")
+	el.BooleanAttribute("attr3", true)
+	el.BooleanAttribute("attr4", true)
+	assert.Equal(t, " attr1=\"val1\" attr2=\"val2\" attr3 attr4", el.compileAttributes())
 }
